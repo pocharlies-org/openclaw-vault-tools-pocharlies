@@ -1,84 +1,24 @@
-# openclaw-vault-tools-pocharlies
+# openclaw-vault-tools-pocharlies — RETIRADO
 
-OpenClaw `vault-tools` plugin for safe HashiCorp Vault KV v2 inspection, guarded writes, and ExternalSecret diagnostics.
+**Ruling del CTO (12-09-2026, SC-490):** este plugin muere con Vault. Da a los
+agentes superficie de lectura *y escritura* (`vault_secret_write`) sobre el
+almacén de las credenciales del clúster; reescribirlo contra 1Password volvería
+a exponer el almacén. Si algún día se necesita un equivalente, será una épica
+propia con su propio diseño de permisos — no una traducción de este código.
 
-## Tools
+El retiro del consumidor (submodule, grants de las 10 herramientas `vault_*`,
+`VAULT_ADDR` de los Deployments) vive en
+`k8s-openclaw-qwen36-pocharlies`, rama `sc498-baja-vault-tools`.
 
-- `vault_status`
-- `vault_list_paths`
-- `vault_secret_metadata`
-- `vault_secret_keys`
-- `vault_secret_read`
-- `vault_secret_write`
-- `vault_external_secret_status`
-- `vault_render_externalsecret`
-- `vault_map_consumers`
-- `vault_capabilities`
+Este PR deja el repo vacío de código: fuera `index.js`, `lib/`, `test/`,
+`openclaw.plugin.json`, el skill `openclaw-vault` y `deploy/vault/` (el
+bootstrap del role Kubernetes `openclaw-vault-tools` y su policy HCL). El role
+y la policy viven dentro de Vault y mueren con él en la fase 6 de SC-490; no
+hay nada que desprovisionar en Git.
 
-## Safety Defaults
+## Advertencia de merge
 
-- Metadata/listing tools never return secret values.
-- `vault_secret_read` redacts values unless `reveal=true` and `confirmation="REVEAL_SECRET_VALUES"`.
-- `vault_secret_write` defaults to `dry_run=true`; real writes require `dry_run=false` and `confirmation="WRITE_VAULT_SECRET"`.
-- There are no delete, undelete, metadata-delete, or destroy tools in v1.
-- Tool errors sanitize token-looking strings.
-
-## OpenClaw Config
-
-Kubernetes:
-
-```json
-{
-  "enabled": true,
-  "config": {
-    "vaultAddr": "http://vault.vault.svc.cluster.local:8200",
-    "authMode": "kubernetes",
-    "kubernetesMountPath": "kubernetes",
-    "kubernetesRole": "openclaw-vault-tools",
-    "mount": "secret",
-    "kubectlBin": "/usr/local/bin/kubectl",
-    "defaultNamespace": "openclaw-qwen36"
-  }
-}
-```
-
-Sauvage:
-
-```json
-{
-  "enabled": true,
-  "config": {
-    "vaultAddr": "http://10.43.220.108:8200",
-    "authMode": "token",
-    "tokenFile": "/home/ubuntu/.openclaw/credentials/vault-tools.token",
-    "mount": "secret",
-    "kubectlBin": "/usr/local/bin/kubectl"
-  }
-}
-```
-
-## Vault Bootstrap
-
-The policy/role bootstrap requires a Vault admin token outside this repo:
-
-```bash
-VAULT_ADDR=http://vault.vault.svc.cluster.local:8200 \
-VAULT_TOKEN=... \
-deploy/vault/bootstrap-vault-tools.sh
-```
-
-The script installs policy `openclaw-vault-tools` and Kubernetes auth role `openclaw-vault-tools` without printing the admin token.
-
-For Sauvage, create a limited renewable token with the same policy and write only the token value to:
-
-```text
-/home/ubuntu/.openclaw/credentials/vault-tools.token
-```
-
-The file must be owned by `ubuntu` and have mode `0600`.
-
-## Tests
-
-```bash
-npm test
-```
+**NO fusionar hasta que la medición del árbol `aurora/` (SC-503,
+`_ops/vault-to-1password/5bis/investigacion-aurora-vaulttools.md`) esté
+entregada**: el backend de secretos de runtime de Aurora solo admite Vault, y
+este plugin era la única vía sin token para medir ese árbol.
